@@ -285,15 +285,13 @@ export const register: Register = on => {
 
     return band(
       messages.flatMap(({ text, rows }, i) => {
-        const isNewest = text === list[list.length - 1]
-        const dim = !isNewest || stale
         // Every row of a message is one press away from showing it whole, or capped again.
         const row = (line: string, j: number) => (
           <Button
             key={`m${i}-${j}`}
             label={(j === 0 ? BULLET : ' '.repeat(BULLET.length)) + line}
             plain
-            dimColor={dim}
+            dimColor
             onPress={() => update($, expanded, was => (was === text ? null : text))}
           />
         )

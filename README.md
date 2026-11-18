@@ -2,7 +2,7 @@
 
 A Claude Code plugin that pins Claude's last 4 messages in a band right above the prompt, so you never have to scroll up to find what Claude last told you while it works through a task.
 
-- The newest message is drawn normally; older ones are dimmed. Once you send a new prompt, every pinned message dims until Claude replies.
+- Every pinned message is drawn dimmed, so the band stays quieter than the chat. Once you send a new prompt, Claude's latest reply counts as an older one until Claude replies again.
 - Long messages are capped (the newest at 6 lines, older ones at 3) and end with `…`. Click any line of a message to show it in full; click again to cap it.
 - `▾` / `▸` at the right of the first row collapses the whole band to one line, or expands it.
 - `−` / `+` beside it hides the dimmed messages, so only the current one shows, or brings them back.

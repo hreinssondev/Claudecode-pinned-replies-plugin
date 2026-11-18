@@ -238,3 +238,13 @@ test('with nothing stored yet, the first chat to start stores its own setup', as
   await startWith($, on, saved)
   expect(saved.setup).toEqual({ isHidden: false, isCollapsed: false, isOlderHidden: false })
 })
+
+test('every message is drawn dimmed, the newest too', async $ => {
+  await reply($, 'reply 1')
+  await reply($, 'reply 2')
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  for (const n of [1, 2]) {
+    expect((await ui.find({ type: 'Button', text: new RegExp(`reply ${n}`) }))?.props.dimColor).toBe(true)
+  }
+  await ui.unmount()
+})
