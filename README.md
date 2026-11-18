@@ -5,7 +5,7 @@ A Claude Code plugin that pins Claude's last 4 messages in a band right above th
 - The newest message is drawn normally; older ones are dimmed. Once you send a new prompt, every pinned message dims until Claude replies.
 - Long messages are capped (the newest at 6 lines, older ones at 3) and end with `…`. Click any line of a message to show it in full; click again to cap it.
 - `▾` / `▸` at the right of the first row collapses the whole band to one line, or expands it.
-- `−` / `+` beside it hides the dimmed messages, so only the current one shows, or brings them back.
+- `−` / `+` beside it hides the dimmed messages, so only the current one shows, or brings them back. The choice is remembered: every new chat starts the way you last set it.
 - A message already fully visible in the chat above is left out of the band; when it scrolls out of view it comes back. (Claude Code reports what is on screen only in its fullscreen layout, the default outside tmux; elsewhere the band keeps every message.)
 - `/pinned` hides or shows the band altogether.
 - Only Claude's text replies in the main conversation are pinned: tool output and subagents' replies are left out. Resuming a session fills the band from its history; `/clear` empties it.

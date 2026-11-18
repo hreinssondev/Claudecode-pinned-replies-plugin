@@ -121,6 +121,9 @@ export const register: Register = on => {
       .map(m => m.text.trim())
       .slice(-KEEP)
     await update($, recent, list => (list.length ? list : seeded))
+    // Every chat starts with older replies shown or hidden as the person last chose.
+    const olderHidden = await $.store.get('isOlderHidden')
+    if (typeof olderHidden === 'boolean') await update($, isOlderHidden, () => olderHidden)
 
     return next(e)
   })
@@ -208,7 +211,11 @@ export const register: Register = on => {
         label={olderHidden ? '+' : '−'}
         plain
         dimColor
-        onPress={() => update($, isOlderHidden, was => !was)}
+        onPress={async () => {
+          let hidden = false
+          await update($, isOlderHidden, was => (hidden = !was))
+          await $.store.set('isOlderHidden', hidden)
+        }}
       />
     )
     const band = (children: RenderChildren) => (

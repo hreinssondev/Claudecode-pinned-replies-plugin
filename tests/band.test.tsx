@@ -1,4 +1,4 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 import type { TestBody } from 'claude-code/testing'
 
 const BAND = {
@@ -61,7 +61,8 @@ test('the toggle collapses every reply into the header, and expands them again',
   }
 })
 
-test('the second toggle hides the older replies and shows them again', async $ => {
+test('the second toggle hides the older replies and shows them again', async ($, on) => {
+  mock.store(on)
   for (const n of [1, 2, 3]) await reply($, `reply ${n}`)
 
   for (const surface of ['terminal', 'desktop'] as const) {
@@ -86,6 +87,7 @@ test('a lone reply has no toggle for older ones', async $ => {
 })
 
 test('a typed prompt makes every reply old until Claude replies again', async ($, on) => {
+  mock.store(on)
   on('prompt.submit', (_, e) => ({ text: e.text }))
   await reply($, 'reply 1')
   await reply($, 'reply 2')
@@ -109,6 +111,7 @@ test('a typed prompt makes every reply old until Claude replies again', async ($
 })
 
 test('a slash command leaves the newest reply current', async ($, on) => {
+  mock.store(on)
   on('prompt.submit', (_, e) => ({ text: e.text }))
   await reply($, 'reply 1')
   await reply($, 'reply 2')
@@ -189,4 +192,31 @@ test('the band draws nothing while every reply it would show is on screen', asyn
   expect(await band.find({ type: 'Button', key: 'toggle' })).toBeFalsy()
   await band.unmount()
   await whole.unmount()
+})
+
+test('a chat starts with older replies hidden when that was the last choice, and a press is remembered', async ($, on) => {
+  // The plugin's store, as an earlier chat left it.
+  const saved: Record<string, unknown> = { isOlderHidden: true }
+  on('store.get', (_, e) => ({ value: saved[e.key] }))
+  on('store.set', (_, e) => {
+    saved[e.key] = e.value
+
+    return { value: undefined }
+  })
+  on('ui.status', () => ({ value: undefined }))
+  on('command.register', () => ({ value: { command: 'pinned' } }))
+  on('session.messages', () => ({ value: [] }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await reply($, 'reply 1')
+  await reply($, 'reply 2')
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await ui.find({ type: 'Button', text: /reply 1/ })).toBeFalsy()
+  expect(await ui.find({ type: 'Button', text: /reply 2/ })).toBeTruthy()
+  await ui.press({ key: 'older' })
+  expect(await ui.find({ type: 'Button', text: /reply 1/ })).toBeTruthy()
+  expect(saved.isOlderHidden).toBe(false)
+  await ui.unmount()
 })
