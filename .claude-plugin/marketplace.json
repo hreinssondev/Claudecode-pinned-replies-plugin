@@ -1,5 +1,5 @@
 {
-  "name": "claude-4-latest-messages-pinned",
+  "name": "claudecode-pinned-replies-plugin",
   "owner": { "name": "hreinssondev" },
   "plugins": [
     {
