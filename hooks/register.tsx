@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, RenderChildren } from 'claude-code'
+import type { EngineInterface, Register, RenderChildren } from 'claude-code'
 
 import type { Recent } from '../types'
 
@@ -25,6 +25,27 @@ const isStale = atom({ plugin: 'pinned-replies', key: 'isStale' } as const, fals
 const expanded = atom({ plugin: 'pinned-replies', key: 'expanded' } as const, null)
 
 const keepLast = (list: Recent, text: string): Recent => [...list, text].slice(-KEEP)
+
+// The band's setup (its toggles and /pinned) is kept in the plugin's store, across
+// chats: each change is stored, and every chat starts, or reloads, with the last.
+const SETUP = 'setup'
+type Setup = { isHidden: boolean; isCollapsed: boolean; isOlderHidden: boolean }
+
+const isSetup = (value: unknown): value is Setup =>
+  typeof value === 'object' &&
+  value !== null &&
+  ['isHidden', 'isCollapsed', 'isOlderHidden'].every(
+    key => typeof (value as Record<string, unknown>)[key] === 'boolean',
+  )
+
+async function saveSetup($: EngineInterface) {
+  const setup: Setup = {
+    isHidden: await read($, isHidden),
+    isCollapsed: await read($, isCollapsed),
+    isOlderHidden: await read($, isOlderHidden),
+  }
+  await $.store.set(SETUP, setup)
+}
 
 // Drops the markdown marks that read as noise in plain text.
 const clean = (text: string) =>
@@ -121,9 +142,15 @@ export const register: Register = on => {
       .map(m => m.text.trim())
       .slice(-KEEP)
     await update($, recent, list => (list.length ? list : seeded))
-    // Every chat starts with older replies shown or hidden as the person last chose.
-    const olderHidden = await $.store.get('isOlderHidden')
-    if (typeof olderHidden === 'boolean') await update($, isOlderHidden, () => olderHidden)
+    const setup = await $.store.get(SETUP)
+    if (isSetup(setup)) {
+      await update($, isHidden, () => setup.isHidden)
+      await update($, isCollapsed, () => setup.isCollapsed)
+      await update($, isOlderHidden, () => setup.isOlderHidden)
+    } else {
+      // Nothing stored yet: this chat's own setup becomes the one every chat starts with.
+      await saveSetup($)
+    }
 
     return next(e)
   })
@@ -140,6 +167,7 @@ export const register: Register = on => {
   on('command.run', { command: 'pinned' }, async $ => {
     let hidden = false
     await update($, isHidden, was => (hidden = !was))
+    await saveSetup($)
 
     return { text: hidden ? 'Pinned replies hidden.' : 'Pinned replies shown.' }
   })
@@ -202,7 +230,10 @@ export const register: Register = on => {
         label={collapsed ? '▸' : '▾'}
         plain
         dimColor
-        onPress={() => update($, isCollapsed, was => !was)}
+        onPress={async () => {
+          await update($, isCollapsed, was => !was)
+          await saveSetup($)
+        }}
       />
     )
     const olderToggle = (
@@ -212,9 +243,8 @@ export const register: Register = on => {
         plain
         dimColor
         onPress={async () => {
-          let hidden = false
-          await update($, isOlderHidden, was => (hidden = !was))
-          await $.store.set('isOlderHidden', hidden)
+          await update($, isOlderHidden, was => !was)
+          await saveSetup($)
         }}
       />
     )

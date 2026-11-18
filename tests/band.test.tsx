@@ -47,7 +47,8 @@ test('a long reply is cut to its rows with an ellipsis', async $ => {
   await ui.unmount()
 })
 
-test('the toggle collapses every reply into the header, and expands them again', async $ => {
+test('the toggle collapses every reply into the header, and expands them again', async ($, on) => {
+  mock.store(on)
   for (const n of [1, 2]) await reply($, `reply ${n}`)
 
   for (const surface of ['terminal', 'desktop'] as const) {
@@ -194,9 +195,12 @@ test('the band draws nothing while every reply it would show is on screen', asyn
   await whole.unmount()
 })
 
-test('a chat starts with older replies hidden when that was the last choice, and a press is remembered', async ($, on) => {
-  // The plugin's store, as an earlier chat left it.
-  const saved: Record<string, unknown> = { isOlderHidden: true }
+// The engine beneath session.start, with the plugin's store kept in `saved`.
+const startWith = async (
+  $: Parameters<TestBody>[0],
+  on: Parameters<TestBody>[1],
+  saved: Record<string, unknown>,
+) => {
   on('store.get', (_, e) => ({ value: saved[e.key] }))
   on('store.set', (_, e) => {
     saved[e.key] = e.value
@@ -207,8 +211,14 @@ test('a chat starts with older replies hidden when that was the last choice, and
   on('command.register', () => ({ value: { command: 'pinned' } }))
   on('session.messages', () => ({ value: [] }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
-
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+}
+
+test('a chat starts with the stored setup, and a press stores the new one', async ($, on) => {
+  const saved: Record<string, unknown> = {
+    setup: { isHidden: false, isCollapsed: false, isOlderHidden: true },
+  }
+  await startWith($, on, saved)
   await reply($, 'reply 1')
   await reply($, 'reply 2')
 
@@ -217,6 +227,14 @@ test('a chat starts with older replies hidden when that was the last choice, and
   expect(await ui.find({ type: 'Button', text: /reply 2/ })).toBeTruthy()
   await ui.press({ key: 'older' })
   expect(await ui.find({ type: 'Button', text: /reply 1/ })).toBeTruthy()
-  expect(saved.isOlderHidden).toBe(false)
+  expect(saved.setup).toEqual({ isHidden: false, isCollapsed: false, isOlderHidden: false })
+  await ui.press({ key: 'toggle' })
+  expect(saved.setup).toEqual({ isHidden: false, isCollapsed: true, isOlderHidden: false })
   await ui.unmount()
+})
+
+test('with nothing stored yet, the first chat to start stores its own setup', async ($, on) => {
+  const saved: Record<string, unknown> = {}
+  await startWith($, on, saved)
+  expect(saved.setup).toEqual({ isHidden: false, isCollapsed: false, isOlderHidden: false })
 })
