@@ -141,3 +141,52 @@ test('pressing a message shows it whole, and pressing again caps it again', asyn
     await ui.unmount()
   }
 })
+
+const message = (requestId: string, text: string, onScreen: { first: number; last: number; of: number } | null) => ({
+  plugin: 'pinned-replies',
+  surface: 'terminal',
+  component: 'AssistantMessage',
+  requestId,
+  props: { text, isFirstOfReply: true, onScreen },
+}) as const
+
+test('a reply drawn whole on screen is left out of the band, and back once it is not', async ($, on) => {
+  // Nothing draws beneath the plugin: this hook stands for the engine's own message rows.
+  on('ui.render', ($, e) => {
+    const { Text } = $.ui.resolve(e)
+
+    return <Text>engine</Text>
+  })
+  await reply($, 'reply 1')
+  await reply($, 'reply 2')
+
+  const whole = await $.ui.mount(message('r2', 'reply 2', { first: 0, last: 3, of: 4 }))
+  let band = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await band.find({ type: 'Button', text: /reply 2/ })).toBeFalsy()
+  // Still dimmed: it is not the newest.
+  expect((await band.find({ type: 'Button', text: /reply 1/ }))?.props.dimColor).toBe(true)
+  await band.unmount()
+  await whole.unmount()
+
+  // Its top row scrolled away: no longer whole on screen.
+  const cut = await $.ui.mount(message('r2', 'reply 2', { first: 2, last: 3, of: 4 }))
+  band = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await band.find({ type: 'Button', text: /reply 2/ }))?.text).toBe('● reply 2')
+  await band.unmount()
+  await cut.unmount()
+})
+
+test('the band draws nothing while every reply it would show is on screen', async ($, on) => {
+  // Nothing draws beneath the plugin: this hook stands for the engine's own message rows.
+  on('ui.render', ($, e) => {
+    const { Text } = $.ui.resolve(e)
+
+    return <Text>engine</Text>
+  })
+  await reply($, 'only reply')
+  const whole = await $.ui.mount(message('r1', 'only reply', { first: 1, last: 2, of: 3 }))
+  const band = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await band.find({ type: 'Button', key: 'toggle' })).toBeFalsy()
+  await band.unmount()
+  await whole.unmount()
+})

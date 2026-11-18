@@ -103,6 +103,11 @@ function layout(
 }
 
 export const register: Register = on => {
+  // The transcript's reply blocks drawn whole on screen now, their text by site.
+  // A pinned message among them is left out of the band, as it is in view anyway.
+  // Only the fullscreen terminal says what is on screen; elsewhere this stays empty.
+  const inView = new Map<string, string>()
+
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'pinned',
@@ -155,6 +160,20 @@ export const register: Register = on => {
     }
 
     return stored
+  })
+
+  on('ui.render', { component: 'AssistantMessage' }, ($, e, next) => {
+    const at = e.props.onScreen
+    // Row 0 is the blank row the engine draws above a message.
+    const isWhole = !!at && at.first <= 1 && at.last >= at.of - 1
+    const site = `${e.requestId}\n${e.props.text}`
+    if (isWhole !== inView.has(site)) {
+      if (isWhole) inView.set(site, e.props.text.trim())
+      else inView.delete(site)
+      $.ui.invalidate('ui.render')
+    }
+
+    return next(e)
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
@@ -213,10 +232,13 @@ export const register: Register = on => {
       return band(withToggles(note(`${list.length} ${list.length === 1 ? 'reply' : 'replies'} collapsed`)))
     }
 
-    const shown = olderHidden ? list.slice(older) : list
-    if (shown.length === 0) {
+    const current = olderHidden ? list.slice(older) : list
+    if (current.length === 0) {
       return band(withToggles(note(`${older} older ${older === 1 ? 'reply' : 'replies'} hidden`)))
     }
+    const visible = new Set(inView.values())
+    const shown = current.filter(text => !visible.has(text))
+    if (shown.length === 0) return next(e)
 
     // Each toggle is one glyph and a gap.
     const firstWidth = width - (hasOlder ? 4 : 2)
@@ -224,7 +246,7 @@ export const register: Register = on => {
 
     return band(
       messages.flatMap(({ text, rows }, i) => {
-        const isNewest = i === messages.length - 1
+        const isNewest = text === list[list.length - 1]
         const dim = !isNewest || stale
         // Every row of a message is one press away from showing it whole, or capped again.
         const row = (line: string, j: number) => (
