@@ -109,6 +109,8 @@ export const register: Register = on => {
   const inView = new Map<string, string>()
 
   on('session.start', async ($, e, next) => {
+    // A status line outlives a reload: drop any an earlier version left behind.
+    $.ui.status(undefined)
     await $.command.register({
       name: 'pinned',
       description: "Show or hide Claude's last messages pinned above the prompt",
