@@ -1,4 +1,4 @@
-# Claude 4 latest messages pinned
+# Claude Code pinned replies plugin
 
 A Claude Code plugin that pins Claude's last 4 messages in a band right above the prompt, so you never have to scroll up to find what Claude last told you while it works through a task.
 
@@ -18,7 +18,7 @@ Without a mouse: `ctrl+x tab` focuses the band, Tab moves between its buttons, E
 At the prompt of a Claude Code terminal session:
 
 ```
-/plugin install pinned-replies --marketplace hreinssondev/Claude-4-latest-messages-pinned
+/plugin install pinned-replies --marketplace hreinssondev/Claudecode-pinned-replies-plugin
 ```
 
 Answer `y` to add the marketplace, then pick a scope (user scope loads it in every session).
@@ -26,10 +26,10 @@ Answer `y` to add the marketplace, then pick a scope (user scope loads it in eve
 From a shell:
 
 ```
-claude plugin install pinned-replies --marketplace hreinssondev/Claude-4-latest-messages-pinned
+claude plugin install pinned-replies --marketplace hreinssondev/Claudecode-pinned-replies-plugin
 ```
 
-In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, Add marketplace with `hreinssondev/Claude-4-latest-messages-pinned`, then Add plugin.
+In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, Add marketplace with `hreinssondev/Claudecode-pinned-replies-plugin`, then Add plugin.
 
 Needs a recent Claude Code: it is built on the plugin function-hooks API (early access), against Claude Code 2.1.311.
 
