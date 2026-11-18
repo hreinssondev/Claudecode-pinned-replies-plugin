@@ -1,0 +1,11 @@
+{
+  "name": "claude-4-latest-messages-pinned",
+  "owner": { "name": "hreinssondev" },
+  "plugins": [
+    {
+      "name": "pinned-replies",
+      "source": "./",
+      "description": "Pins Claude's last 4 messages in a band above the prompt"
+    }
+  ]
+}

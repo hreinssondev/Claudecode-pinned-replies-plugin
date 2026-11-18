@@ -1,0 +1,10 @@
+{
+  "name": "pinned-replies",
+  "version": "0.1.0",
+  "description": "Pins Claude's last 4 messages in a band above the prompt",
+  "types": "./types/index.d.ts",
+  "license": "MIT",
+  "author": {
+    "name": "hreinssondev"
+  }
+}
